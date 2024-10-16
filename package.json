@@ -1,0 +1,397 @@
+{
+  "publisher": "flexpilot",
+  "name": "vscode",
+  "displayName": "FlexPilot",
+  "description": "An open-source AI-powered code completion tool for enhanced developer productivity.",
+  "version": "1.94.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mohankumarelec/FlexPilot"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "vscode-test",
+    "postinstall": "node ./.github/env-setup.mjs"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.1",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "18.x",
+    "@types/turndown": "^5.0.5",
+    "@types/uuid": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "@vscode/test-cli": "^0.0.4",
+    "eslint": "^8.56.0",
+    "node-loader": "^2.0.0",
+    "octokit": "^4.0.2",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.5.4",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "contributes": {
+    "languageModels": {
+      "vendor": "flexpilot"
+    },
+    "menus": {
+      "scm/inputBox": [
+        {
+          "command": "flexpilot.git.generateCommitMessage",
+          "when": "scmProvider == git"
+        }
+      ]
+    },
+    "configuration": {
+      "type": "object",
+      "title": "FlexPilot",
+      "properties": {
+        "flexpilot.completions.debounceWait": {
+          "type": "number",
+          "minimum": 10,
+          "default": 100,
+          "description": "The time in milliseconds to wait before triggering a completion."
+        },
+        "flexpilot.completions.contextPrefixWeight": {
+          "type": "number",
+          "maximum": 0.95,
+          "minimum": 0.05,
+          "default": 0.85,
+          "description": "The proportion of prefix to suffix tokens in the context for completions."
+        },
+        "flexpilot.completions.includeOpenFiles": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to add files opened in nearby editors to the context for completions."
+        },
+        "flexpilot.completions.temperature": {
+          "type": "number",
+          "maximum": 1,
+          "minimum": 0,
+          "default": 0.1,
+          "description": "The randomness of completions, with 0.0 being deterministic and 1.0 being random."
+        },
+        "flexpilot.panelChat.temperature": {
+          "type": "number",
+          "maximum": 1,
+          "minimum": 0,
+          "default": 0.1,
+          "description": "The randomness of panel chat, with 0.0 being deterministic and 1.0 being random."
+        },
+        "flexpilot.inlineChat.temperature": {
+          "type": "number",
+          "maximum": 1,
+          "minimum": 0,
+          "default": 0.1,
+          "description": "The randomness of inline chat, with 0.0 being deterministic and 1.0 being random."
+        },
+        "flexpilot.chatSuggestions.temperature": {
+          "type": "number",
+          "maximum": 1,
+          "minimum": 0,
+          "default": 0.1,
+          "description": "The randomness of chat suggestions, with 0.0 being deterministic and 1.0 being random."
+        },
+        "flexpilot.chatTitle.temperature": {
+          "type": "number",
+          "maximum": 1,
+          "minimum": 0,
+          "default": 0.1,
+          "description": "The randomness of chat title, with 0.0 being deterministic and 1.0 being random."
+        },
+        "flexpilot.gitCommitMessage.temperature": {
+          "type": "number",
+          "maximum": 1,
+          "minimum": 0,
+          "default": 0.1,
+          "description": "The randomness of GIT commit messages, with 0.0 being deterministic and 1.0 being random."
+        }
+      }
+    },
+    "chatParticipants": [
+      {
+        "id": "flexpilot.panel.default",
+        "name": "flexpilot",
+        "fullName": "FlexPilot",
+        "description": "Ask Copilot or type / for commands",
+        "isDefault": true,
+        "locations": [
+          "panel"
+        ]
+      },
+      {
+        "id": "flexpilot.editor.default",
+        "name": "flexpilot",
+        "fullName": "FlexPilot",
+        "description": "Ask Copilot or type / for commands",
+        "isDefault": true,
+        "locations": [
+          "editor"
+        ],
+        "defaultImplicitVariables": [
+          "_inlineChatContext",
+          "_inlineChatDocument"
+        ]
+      }
+    ],
+    "viewsWelcome": [
+      {
+        "view": "workbench.panel.chat.view.copilot",
+        "contents": "Sign in with GitHub to use Copilot, your AI pair programmer.\n[Sign In](command:flexpilot.github.signin)",
+        "when": "!flexpilot:active"
+      },
+      {
+        "view": "workbench.panel.chat.view.copilot",
+        "contents": "You are currently offline. Please connect to the internet to use Copilot.\n[Retry Connection](command:flexpilot.offline)",
+        "when": "flexpilot:active"
+      }
+    ],
+    "commands": [
+      {
+        "command": "flexpilot.git.generateCommitMessage",
+        "title": "Generate Commit Message",
+        "icon": "$(sparkle)",
+        "category": "FlexPilot"
+      },
+      {
+        "command": "flexpilot.github.signin",
+        "title": "Sign In with GitHub",
+        "category": "FlexPilot"
+      },
+      {
+        "command": "flexpilot.configureModel",
+        "title": "Configure the Language Model Provider",
+        "category": "FlexPilot"
+      },
+      {
+        "command": "flexpilot.enableProposedApi",
+        "title": "Enable proposed API via argv.json",
+        "category": "FlexPilot"
+      },
+      {
+        "command": "flexpilot.status.icon.menu",
+        "title": "FlexPilot Status Icon Menu"
+      }
+    ],
+    "icons": {
+      "copilot-logo": {
+        "description": "GitHub Copilot icon",
+        "default": {
+          "fontPath": "assets/copilot.woff",
+          "fontCharacter": "\\0041"
+        }
+      },
+      "copilot-warning": {
+        "description": "GitHub Copilot icon",
+        "default": {
+          "fontPath": "assets/copilot.woff",
+          "fontCharacter": "\\0042"
+        }
+      },
+      "copilot-notconnected": {
+        "description": "GitHub Copilot icon",
+        "default": {
+          "fontPath": "assets/copilot.woff",
+          "fontCharacter": "\\0043"
+        }
+      },
+      "copilot-chat": {
+        "description": "GitHub Copilot chat icon",
+        "default": {
+          "fontPath": "assets/copilot.woff",
+          "fontCharacter": "\\F101"
+        }
+      },
+      "copilot-blocked": {
+        "description": "GitHub Copilot blocked icon",
+        "default": {
+          "fontPath": "assets/copilot.woff",
+          "fontCharacter": "\\0045"
+        }
+      }
+    },
+    "iconFonts": [
+      {
+        "id": "copilot-font",
+        "src": [
+          {
+            "path": "assets/copilot.woff",
+            "format": "woff"
+          }
+        ]
+      }
+    ]
+  },
+  "dependencies": {
+    "@ai-sdk/azure": "^0.0.45",
+    "@ai-sdk/google": "^0.0.51",
+    "@ai-sdk/mistral": "^0.0.42",
+    "@ai-sdk/openai": "^0.0.66",
+    "@flexpilot-ai/tokenizers": "^0.0.1",
+    "@google/generative-ai": "^0.21.0",
+    "@mistralai/mistralai": "^1.1.0",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "ai": "^3.4.9",
+    "axios": "^1.7.2",
+    "comment-json": "^4.2.4",
+    "groq-sdk": "^0.5.0",
+    "markdown-it": "^14.1.0",
+    "openai": "^4.67.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "turndown": "^7.2.0",
+    "uuid": "^10.0.0",
+    "zod": "^3.23.8"
+  },
+  "enabledApiProposals": [
+    "activeComment",
+    "aiRelatedInformation",
+    "aiTextSearchProvider",
+    "aiTextSearchProviderNew",
+    "attributableCoverage",
+    "authLearnMore",
+    "authSession",
+    "canonicalUriProvider",
+    "chatParticipantAdditions",
+    "chatParticipantPrivate",
+    "chatProvider",
+    "chatTab",
+    "chatVariableResolver",
+    "codeActionAI",
+    "codeActionRanges",
+    "codiconDecoration",
+    "commentReactor",
+    "commentReveal",
+    "commentThreadApplicability",
+    "commentingRangeHint",
+    "commentsDraftState",
+    "contribAccessibilityHelpContent",
+    "contribChatParticipantDetection",
+    "contribCommentEditorActionsMenu",
+    "contribCommentPeekContext",
+    "contribCommentThreadAdditionalMenu",
+    "contribCommentsViewThreadMenus",
+    "contribDebugCreateConfiguration",
+    "contribDiffEditorGutterToolBarMenus",
+    "contribEditSessions",
+    "contribEditorContentMenu",
+    "contribIssueReporter",
+    "contribLabelFormatterWorkspaceTooltip",
+    "contribMenuBarHome",
+    "contribMergeEditorMenus",
+    "contribMultiDiffEditorMenus",
+    "contribNotebookStaticPreloads",
+    "contribRemoteHelp",
+    "contribShareMenu",
+    "contribSourceControlHistoryItemMenu",
+    "contribSourceControlHistoryTitleMenu",
+    "contribSourceControlInputBoxMenu",
+    "contribSourceControlTitleMenu",
+    "contribStatusBarItems",
+    "contribViewContainerTitle",
+    "contribViewsRemote",
+    "contribViewsWelcome",
+    "createFileSystemWatcher",
+    "customEditorMove",
+    "debugVisualization",
+    "defaultChatParticipant",
+    "diffCommand",
+    "diffContentOptions",
+    "documentFiltersExclusive",
+    "documentPaste",
+    "editSessionIdentityProvider",
+    "editorHoverVerbosityLevel",
+    "editorInsets",
+    "embeddings",
+    "extensionRuntime",
+    "extensionsAny",
+    "externalUriOpener",
+    "fileComments",
+    "fileSearchProvider",
+    "fileSearchProviderNew",
+    "findFiles2",
+    "findFiles2New",
+    "findTextInFiles",
+    "findTextInFilesNew",
+    "fsChunks",
+    "idToken",
+    "inlineCompletionsAdditions",
+    "inlineEdit",
+    "interactive",
+    "interactiveWindow",
+    "ipc",
+    "languageModelSystem",
+    "languageStatusText",
+    "lmTools",
+    "mappedEditsProvider",
+    "multiDocumentHighlightProvider",
+    "newSymbolNamesProvider",
+    "notebookCellExecution",
+    "notebookCellExecutionState",
+    "notebookControllerAffinityHidden",
+    "notebookDeprecated",
+    "notebookExecution",
+    "notebookKernelSource",
+    "notebookLiveShare",
+    "notebookMessaging",
+    "notebookMime",
+    "notebookReplDocument",
+    "notebookVariableProvider",
+    "portsAttributes",
+    "profileContentHandlers",
+    "quickDiffProvider",
+    "quickInputButtonLocation",
+    "quickPickItemTooltip",
+    "quickPickSortByLabel",
+    "resolvers",
+    "scmActionButton",
+    "scmHistoryProvider",
+    "scmMultiDiffEditor",
+    "scmSelectedProvider",
+    "scmTextDocument",
+    "scmValidation",
+    "shareProvider",
+    "showLocal",
+    "speech",
+    "tabInputMultiDiff",
+    "tabInputTextMerge",
+    "taskPresentationGroup",
+    "telemetry",
+    "terminalDataWriteEvent",
+    "terminalDimensions",
+    "terminalExecuteCommandEvent",
+    "terminalQuickFixProvider",
+    "terminalSelection",
+    "testObserver",
+    "testRelatedCode",
+    "textSearchCompleteNew",
+    "textSearchProvider",
+    "textSearchProviderNew",
+    "timeline",
+    "tokenInformation",
+    "treeViewActiveItem",
+    "treeViewMarkdownMessage",
+    "treeViewReveal",
+    "tunnelFactory",
+    "tunnels",
+    "workspaceTrust"
+  ],
+  "engines": {
+    "vscode": "^1.94.2"
+  }
+}

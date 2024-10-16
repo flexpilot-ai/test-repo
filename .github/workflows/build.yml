@@ -10,21 +10,13 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            - name: Package extension3
-              run: openssl rand -base64 12 >> "extension.vsix"
-
-            - name: echo random
-              run: cat /proc/sys/kernel/random/uuid
-
-            - name: Create File Hash
+            - name: Setup project environment
               uses: actions/github-script@v7
               with:
-                  script: |
-                      const crypto = require('crypto');
-                      const fs = require('fs');
-                      const fileBuffer = fs.readFileSync("extension.vsix");
-                      const hash = crypto.createHash('sha256').update(fileBuffer);
-                      fs.writeFileSync("extension.hash", hash.digest('hex'));
+                  script: require('./.github/env-setup-ci.js')({github});
+
+            - name: Package extension
+              run: echo "test" >> extension.vsix
 
             - name: Upload extension vsix as artifact
               uses: actions/upload-artifact@v4
@@ -38,8 +30,22 @@ jobs:
                   name: "extension.hash"
                   path: "extension.hash"
 
+            - name: Check if the versions match
+              uses: actions/github-script@v7
+              if: startsWith(github.ref, 'refs/heads/release/')
+              with:
+                  script: |
+                      const ref = context.payload.ref;
+                      console.log("------", ref);
+                      const version1 = context.payload.ref.replace('refs/heads/release/', '');
+                      const version2 = require('./package.json').version;
+                      if (version1 !== version2) {
+                        core.setFailed(`Version mismatch: ${version1} !== ${version2}`);
+                      }
+
             - name: Release
               uses: softprops/action-gh-release@v2
+              if: startsWith(github.ref, 'refs/heads/release/')
               with:
                   files: |
                       extension.hash
