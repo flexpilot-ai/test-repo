@@ -10,6 +10,14 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
+            - name: Check if the versions match
+              uses: actions/github-script@v7
+              if: startsWith(github.ref, 'refs/heads/release/')
+              with:
+                  script: |
+                      const ref = context.payload.ref;
+                      console.log("------", ref);
+
             - name: Setup project environment
               uses: actions/github-script@v7
               with:
