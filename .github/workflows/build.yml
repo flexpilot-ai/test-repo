@@ -14,7 +14,7 @@ jobs:
               run: openssl rand -base64 12 >> "extension.vsix"
 
             - name: echo random
-              run: echo /proc/sys/kernel/random/uuid
+              run: cat /proc/sys/kernel/random/uuid
 
             - name: Create File Hash
               uses: actions/github-script@v7
