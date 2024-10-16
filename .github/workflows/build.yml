@@ -10,7 +10,7 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            - name: Package extension
+            - name: Package extension1
               run: openssl rand -base64 12 >> "extension.vsix"
 
             - name: Create File Hash
